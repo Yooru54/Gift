@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>3D Подарочный купон</title>
+<style>
+  body { margin: 0; overflow: hidden; font-family: sans-serif; }
+
+  #ui {
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    background: rgba(255,255,255,0.9);
+    padding: 10px;
+    border-radius: 10px;
+    z-index: 10;
+    width: 220px;
+    box-shadow: 0 0 8px #0003;
+  }
+
+  textarea { width: 100%; height: 50px; }
+  input { width: 100%; }
+</style>
+</head>
+<body>
+
+<div id="ui">
+  <b>Лицевая сторона:</b><br>
+  <textarea id="front">🎁 ПОДАРОЧНЫЙ КУПОН</textarea><br>
+
+  <b>Обратная сторона:</b><br>
+  <textarea id="back">Действителен до 31.12.2025</textarea><br>
+
+  <b>Размер шрифта:</b><br>
+  <input id="font" type="number" value="40">
+</div>
+
+<!-- ПРАВИЛЬНЫЕ версии Three.js и OrbitControls -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.155.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+  // СЦЕНА
+  const scene = new THREE.Scene();
+
+  const camera = new THREE.PerspectiveCamera(55, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 0, 3);
+
+  const renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(innerWidth, innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  // Свет
+  const light = new THREE.DirectionalLight(0xffffff, 1.2);
+  light.position.set(3, 4, 5);
+  scene.add(light);
+
+  // Текстуры
+  const W = 1024, H = 512;
+
+  const frontCanvas = document.createElement('canvas');
+  const backCanvas = document.createElement('canvas');
+  frontCanvas.width = backCanvas.width = W;
+  frontCanvas.height = backCanvas.height = H;
+
+  const frontCtx = frontCanvas.getContext('2d');
+  const backCtx = backCanvas.getContext('2d');
+
+  const frontTex = new THREE.CanvasTexture(frontCanvas);
+  const backTex = new THREE.CanvasTexture(backCanvas);
+
+  function draw(ctx, text, fontSize) {
+    ctx.fillStyle = "#fff5dd";          // цвет бумаги
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.fillStyle = "#b22222";          // цвет текста
+    ctx.font = `bold ${fontSize}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, W / 2, H / 2);
+  }
+
+  function update() {
+    const frontText = document.getElementById("front").value;
+    const backText  = document.getElementById("back").value;
+    const fontSize  = Number(document.getElementById("font").value);
+
+    draw(frontCtx, frontText, fontSize);
+    draw(backCtx, backText, fontSize);
+
+    frontTex.needsUpdate = true;
+    backTex.needsUpdate = true;
+  }
+
+  update();
+
+  // Геометрия купона
+  const geom = new THREE.PlaneGeometry(3, 1.5);
+
+  const mesh = new THREE.Mesh(geom, [
+    new THREE.MeshBasicMaterial({ map: frontTex, side: THREE.FrontSide }),
+    new THREE.MeshBasicMaterial({ map: backTex,  side: THREE.BackSide })
+  ]);
+
+  scene.add(mesh);
+
+  // Движение
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Обновление при вводе
+  document.querySelectorAll("textarea, input").forEach(el => {
+    el.addEventListener("input", update);
+  });
+
+  window.addEventListener("resize", () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+</script>
+
+</body>
+</html>
